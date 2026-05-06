@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --rnda-green: #6db33f;
+  --rnda-dark: #1e5631;
+  --rnda-light: #f0f7eb;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-rnda-green: var(--rnda-green);
+  --color-rnda-dark: var(--rnda-dark);
+  --color-rnda-light: var(--rnda-light);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.rnda-gradient {
+  background: linear-gradient(135deg, #1e5631 0%, #6db33f 100%);
+}
+
+.prose h1, .prose h2, .prose h3 {
+  color: #1e5631;
+}
+
+.prose p {
+  line-height: 1.8;
+}
