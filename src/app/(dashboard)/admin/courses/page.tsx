@@ -7,18 +7,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SUBJECTS, SUBJECT_ICONS } from "@/lib/utils";
 
+type AdminCourse = {
+  id: string;
+  title: string;
+  subject: string;
+  grade: number;
+  published: boolean;
+  teacher: { name: string | null };
+  lessons: Array<{ id: string }>;
+  enrollments: Array<{ id: string }>;
+};
+
 export default async function AdminCoursesPage() {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") redirect("/dashboard");
 
-  const courses = await db.course.findMany({
+  const courses = (await db.course.findMany({
     include: {
       teacher: { select: { name: true } },
       lessons: { select: { id: true } },
       enrollments: { select: { id: true } },
     },
     orderBy: { createdAt: "desc" },
-  });
+  })) as unknown as AdminCourse[];
 
   return (
     <div className="space-y-6">
