@@ -39,17 +39,13 @@ export async function POST(req: Request) {
     { name: "Student Twenty", email: "student20@rnda", role: "STUDENT" },
   ];
 
-  const results = { created: 0, skipped: 0 };
-
   for (const account of accounts) {
-    const exists = await db.user.findUnique({ where: { email: account.email } });
-    if (exists) {
-      results.skipped++;
-      continue;
-    }
-    await db.user.create({ data: { ...account, password } });
-    results.created++;
+    await db.user.upsert({
+      where: { email: account.email },
+      update: { name: account.name, role: account.role, password },
+      create: { ...account, password },
+    });
   }
 
-  return NextResponse.json({ ok: true, ...results, total: accounts.length });
+  return NextResponse.json({ ok: true, upserted: accounts.length });
 }
