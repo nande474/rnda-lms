@@ -36,11 +36,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const email = user.email ?? (token.email as string | undefined);
-        if (email) {
-          const dbUser = await db.user.findUnique({ where: { email } });
-          token.role = dbUser?.role ?? "STUDENT";
-          token.grade = dbUser?.grade ?? null;
+        try {
+          const email = user.email ?? (token.email as string | undefined);
+          if (email) {
+            const dbUser = await db.user.findUnique({ where: { email } });
+            token.role = dbUser?.role ?? "STUDENT";
+            token.grade = dbUser?.grade ?? null;
+          }
+        } catch {
+          token.role = "STUDENT";
+          token.grade = null;
         }
       }
       return token;
