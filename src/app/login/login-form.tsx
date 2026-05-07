@@ -2,8 +2,46 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+function PasswordInput({
+  placeholder,
+  value,
+  onChange,
+  disabled,
+  required,
+}: {
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+  required?: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <Input
+        type={visible ? "text" : "password"}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        required={required}
+        disabled={disabled}
+        className="pr-10"
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        tabIndex={-1}
+      >
+        {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </div>
+  );
+}
 
 export function LoginForm() {
   const [mode, setMode] = useState<"signin" | "register">("signin");
@@ -111,8 +149,7 @@ export function LoginForm() {
             required
             disabled={loading}
           />
-          <Input
-            type="password"
+          <PasswordInput
             placeholder="Password"
             value={form.password}
             onChange={set("password")}
@@ -120,8 +157,7 @@ export function LoginForm() {
             disabled={loading}
           />
           {mode === "register" && (
-            <Input
-              type="password"
+            <PasswordInput
               placeholder="Confirm password"
               value={form.confirm}
               onChange={set("confirm")}
