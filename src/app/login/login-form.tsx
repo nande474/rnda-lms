@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { credentialsSignIn } from "@/lib/actions";
 
 const TEST_ACCOUNTS = [
   { label: "Admin", email: "admin@rnda", role: "ADMIN" },
@@ -97,17 +98,10 @@ export function LoginForm() {
   const handleQuickSignIn = async (email: string) => {
     setSigningInAs(email);
     setError("");
-    const result = await signIn("credentials", {
-      email,
-      password: "Rnda@2024!",
-      callbackUrl: "/dashboard",
-      redirect: false,
-    });
+    const result = await credentialsSignIn(email, "Rnda@2024!");
     if (result?.error) {
-      setError(`Could not sign in as ${email}`);
+      setError(result.error);
       setSigningInAs("");
-    } else {
-      window.location.href = "/dashboard";
     }
   };
 
@@ -135,18 +129,10 @@ export function LoginForm() {
       }
     }
 
-    const result = await signIn("credentials", {
-      email: form.email,
-      password: form.password,
-      callbackUrl: "/dashboard",
-      redirect: false,
-    });
-
+    const result = await credentialsSignIn(form.email, form.password);
     if (result?.error) {
-      setError("Invalid email or password");
+      setError(result.error);
       setLoading(false);
-    } else {
-      window.location.href = "/dashboard";
     }
   };
 
