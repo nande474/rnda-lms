@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import { credentialsSignIn } from "@/lib/actions";
 
 const TEST_ACCOUNTS = [
@@ -204,6 +205,14 @@ export function LoginForm() {
               required
               disabled={loading}
             />
+          )}
+
+          {mode === "signin" && (
+            <div className="text-right">
+              <Link href="/forgot-password" className="text-xs text-gray-400 hover:text-[#6db33f]">
+                Forgot password?
+              </Link>
+            </div>
           )}
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
