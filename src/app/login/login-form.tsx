@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { credentialsSignIn } from "@/lib/actions";
+import { useSearchParams } from "next/navigation";
 
 const TEST_ACCOUNTS = [
   { label: "Admin", email: "admin@rnda", role: "ADMIN" },
@@ -81,11 +82,13 @@ function PasswordInput({
 }
 
 export function LoginForm() {
-  const [mode, setMode] = useState<"signin" | "register">("signin");
+  const params = useSearchParams();
+  const authError = params.get("error");
+
   const [loading, setLoading] = useState(false);
   const [signingInAs, setSigningInAs] = useState("");
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [showTestAccounts, setShowTestAccounts] = useState(false);
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -110,26 +113,6 @@ export function LoginForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
-    if (mode === "register") {
-      if (form.password !== form.confirm) {
-        setError("Passwords do not match");
-        setLoading(false);
-        return;
-      }
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Registration failed");
-        setLoading(false);
-        return;
-      }
-    }
-
     const result = await credentialsSignIn(form.email, form.password);
     if (result?.error) {
       setError(result.error);
@@ -143,13 +126,17 @@ export function LoginForm() {
         <div className="w-12 h-12 bg-[#6db33f] rounded-xl flex items-center justify-center mb-4 mx-auto lg:mx-0">
           <span className="text-white font-bold text-xl">R</span>
         </div>
-        <h2 className="text-2xl font-bold text-[#1e5631]">
-          {mode === "signin" ? "Sign in" : "Create account"}
-        </h2>
+        <h2 className="text-2xl font-bold text-[#1e5631]">Sign in</h2>
         <p className="text-gray-500 text-sm mt-1">Access the RNDA Learning Portal</p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+        {authError === "AccessDenied" && (
+          <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">
+            Your Google account has not been registered. Contact your administrator.
+          </div>
+        )}
+
         <Button
           onClick={handleGoogle}
           disabled={loading || !!signingInAs}
@@ -173,15 +160,6 @@ export function LoginForm() {
         </div>
 
         <form onSubmit={handleCredentials} className="space-y-3">
-          {mode === "register" && (
-            <Input
-              placeholder="Full name"
-              value={form.name}
-              onChange={set("name")}
-              required
-              disabled={loading}
-            />
-          )}
           <Input
             type="email"
             placeholder="Email address"
@@ -197,23 +175,12 @@ export function LoginForm() {
             required
             disabled={loading}
           />
-          {mode === "register" && (
-            <PasswordInput
-              placeholder="Confirm password"
-              value={form.confirm}
-              onChange={set("confirm")}
-              required
-              disabled={loading}
-            />
-          )}
 
-          {mode === "signin" && (
-            <div className="text-right">
-              <Link href="/forgot-password" className="text-xs text-gray-400 hover:text-[#6db33f]">
-                Forgot password?
-              </Link>
-            </div>
-          )}
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-xs text-gray-400 hover:text-[#6db33f]">
+              Forgot password?
+            </Link>
+          </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
@@ -223,24 +190,12 @@ export function LoginForm() {
             size="lg"
             disabled={loading || !!signingInAs}
           >
-            {loading ? "Please wait…" : mode === "signin" ? "Sign In" : "Create Account"}
+            {loading ? "Please wait…" : "Sign In"}
           </Button>
         </form>
 
-        <p className="text-center text-sm text-gray-500">
-          {mode === "signin" ? (
-            <>No account?{" "}
-              <button onClick={() => { setMode("register"); setError(""); }} className="text-[#6db33f] hover:underline font-medium">
-                Register
-              </button>
-            </>
-          ) : (
-            <>Already have an account?{" "}
-              <button onClick={() => { setMode("signin"); setError(""); }} className="text-[#6db33f] hover:underline font-medium">
-                Sign in
-              </button>
-            </>
-          )}
+        <p className="text-center text-xs text-gray-400">
+          No account? Contact your administrator.
         </p>
       </div>
 

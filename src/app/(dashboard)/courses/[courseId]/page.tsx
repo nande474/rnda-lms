@@ -18,6 +18,14 @@ export default async function CourseDetailPage({
       teacher: { select: { name: true, image: true } },
       lessons: { orderBy: { order: "asc" } },
       quizzes: { include: { questions: true } },
+      assignments: {
+        orderBy: { dueDate: "asc" },
+        include: {
+          submissions: {
+            where: { userId: session.user.id },
+          },
+        },
+      },
     },
   });
 

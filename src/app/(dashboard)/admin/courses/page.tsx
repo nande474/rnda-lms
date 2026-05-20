@@ -20,7 +20,7 @@ type AdminCourse = {
 
 export default async function AdminCoursesPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/dashboard");
+  if (!session?.user || !["ADMIN", "SUPERADMIN"].includes(session.user.role)) redirect("/dashboard");
 
   const courses = (await db.course.findMany({
     include: {

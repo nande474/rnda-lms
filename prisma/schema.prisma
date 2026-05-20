@@ -6,6 +6,13 @@ datasource db {
   provider = "postgresql"
 }
 
+model Site {
+  id        Int    @id
+  name      String
+  shortName String?
+  address   String?
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -14,17 +21,25 @@ model User {
   image         String?
   role          String    @default("STUDENT")
   grade         Int?
+  siteId        Int?
   password      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts       Account[]
-  sessions       Session[]
-  enrollments    Enrollment[]
-  quizAttempts   QuizAttempt[]
-  lessonProgress LessonProgress[]
-  certificates   Certificate[]
-  taughtCourses  Course[]         @relation("CourseTeacher")
+  accounts            Account[]
+  sessions            Session[]
+  enrollments         Enrollment[]
+  quizAttempts        QuizAttempt[]
+  lessonProgress      LessonProgress[]
+  certificates        Certificate[]
+  taughtCourses       Course[]              @relation("CourseTeacher")
+  submissions         AssignmentSubmission[] @relation("SubmissionUser")
+  gradedSubmissions   AssignmentSubmission[] @relation("GradedBy")
+  attendanceRecords   AttendanceRecord[]
+  hostedSessions      AttendanceSession[]   @relation("SessionTeacher")
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  announcements       Announcement[]
 }
 
 model Account {
@@ -74,23 +89,26 @@ model Course {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  teacher      User          @relation("CourseTeacher", fields: [teacherId], references: [id])
-  lessons      Lesson[]
-  enrollments  Enrollment[]
-  quizzes      Quiz[]
-  certificates Certificate[]
+  teacher            User               @relation("CourseTeacher", fields: [teacherId], references: [id])
+  lessons            Lesson[]
+  enrollments        Enrollment[]
+  quizzes            Quiz[]
+  certificates       Certificate[]
+  assignments        Assignment[]
+  attendanceSessions AttendanceSession[]
 }
 
 model Lesson {
-  id        String   @id @default(cuid())
-  title     String
-  content   String
-  videoUrl  String?
-  order     Int
-  courseId  String
-  duration  Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  videoUrl    String?
+  resourceUrl String?
+  order       Int
+  courseId    String
+  duration    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   quiz     Quiz?
@@ -178,4 +196,100 @@ model Certificate {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+}
+
+model Assignment {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  dueDate     DateTime
+  courseId    String
+  maxScore    Int      @default(100)
+  weight      Float    @default(1.0)
+  createdAt   DateTime @default(now())
+
+  course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id           String    @id @default(cuid())
+  assignmentId String
+  userId       String
+  content      String?
+  fileUrl      String?
+  submittedAt  DateTime  @default(now())
+  grade        Int?
+  feedback     String?
+  gradedAt     DateTime?
+  gradedById   String?
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user       User       @relation("SubmissionUser", fields: [userId], references: [id], onDelete: Cascade)
+  gradedBy   User?      @relation("GradedBy", fields: [gradedById], references: [id])
+
+  @@unique([assignmentId, userId])
+}
+
+model AttendanceSession {
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  siteId    Int?
+  courseId  String?
+  teacherId String
+  createdAt DateTime @default(now())
+
+  teacher  User               @relation("SessionTeacher", fields: [teacherId], references: [id])
+  course   Course?            @relation(fields: [courseId], references: [id])
+  records  AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id        String  @id @default(cuid())
+  sessionId String
+  userId    String
+  present   Boolean @default(false)
+  notes     String?
+
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  type      String   @default("SYSTEM")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String
+  targetType String
+  targetId   String
+  details    String?
+  createdAt  DateTime @default(now())
+
+  actor User @relation(fields: [actorId], references: [id])
+}
+
+model Announcement {
+  id        String    @id @default(cuid())
+  title     String
+  message   String
+  active    Boolean   @default(true)
+  authorId  String
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  author User @relation(fields: [authorId], references: [id])
 }

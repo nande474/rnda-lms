@@ -16,12 +16,23 @@ export default async function TeachCoursePage({
     where: { id: courseId },
     include: {
       lessons: { orderBy: { order: "asc" } },
+      assignments: {
+        orderBy: { dueDate: "asc" },
+        include: {
+          submissions: {
+            include: { user: { select: { name: true, email: true } } },
+            orderBy: { submittedAt: "desc" },
+          },
+        },
+      },
       enrollments: { include: { user: { select: { name: true, email: true, image: true } } } },
     },
   });
 
   if (!course) notFound();
-  if (session.user.role !== "ADMIN" && course.teacherId !== session.user.id) redirect("/dashboard");
+  if (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN" && course.teacherId !== session.user.id) {
+    redirect("/dashboard");
+  }
 
   return <CourseEditor course={course} />;
 }

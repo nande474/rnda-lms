@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default async function AdminSettingsPage() {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") redirect("/dashboard");
+  if (!session?.user || !["ADMIN", "SUPERADMIN"].includes(session.user.role)) redirect("/dashboard");
 
   return (
     <div className="space-y-6 max-w-2xl">

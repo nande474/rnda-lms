@@ -35,27 +35,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
         try {
-          const email = user.email ?? (token.email as string | undefined);
-          if (email) {
-            const dbUser = await db.user.findUnique({ where: { email } });
-            token.role = dbUser?.role ?? "STUDENT";
-            token.grade = dbUser?.grade ?? null;
-          }
+          const existing = await db.user.findUnique({
+            where: { email: user.email! },
+            select: { id: true },
+          });
+          return !!existing;
         } catch {
-          token.role = "STUDENT";
-          token.grade = null;
+          return false;
         }
+      }
+      return true;
+    },
+    async jwt({ token }) {
+      try {
+        if (token.email) {
+          const dbUser = await db.user.findUnique({
+            where: { email: token.email as string },
+            select: { role: true, grade: true, siteId: true },
+          });
+          token.role   = dbUser?.role   ?? "STUDENT";
+          token.grade  = dbUser?.grade  ?? null;
+          token.siteId = dbUser?.siteId ?? null;
+        }
+      } catch {
+        token.role  ??= "STUDENT";
+        token.grade ??= null;
       }
       return token;
     },
     session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub!;
-        session.user.role = (token.role as string) ?? "STUDENT";
-        session.user.grade = (token.grade as number | null) ?? null;
+        session.user.id     = token.sub!;
+        session.user.role   = (token.role   as string)         ?? "STUDENT";
+        session.user.grade  = (token.grade  as number | null)  ?? null;
+        session.user.siteId = (token.siteId as number | null)  ?? null;
       }
       return session;
     },

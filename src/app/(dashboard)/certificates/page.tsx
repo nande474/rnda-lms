@@ -81,9 +81,11 @@ export default async function CertificatesPage() {
               </div>
 
               <div className="px-6 pb-5">
-                <Button variant="outline" size="sm" className="w-full">
-                  <Download size={14} /> Download Certificate
-                </Button>
+                <a href={`/api/certificates/${cert.courseId}/pdf`} download>
+                  <Button variant="outline" size="sm" className="w-full gap-2 border-[#6db33f] text-[#1e5631] hover:bg-[#f0f7eb]">
+                    <Download size={14} /> Download Certificate (PDF)
+                  </Button>
+                </a>
               </div>
             </div>
           ))}

@@ -24,9 +24,10 @@ interface CourseBrowserProps {
   courses: Course[];
   enrolledIds: Set<string>;
   userGrade: number | null;
+  isPrivileged?: boolean;
 }
 
-export function CourseBrowser({ courses, enrolledIds, userGrade }: CourseBrowserProps) {
+export function CourseBrowser({ courses, enrolledIds, userGrade, isPrivileged }: CourseBrowserProps) {
   const [subject, setSubject] = useState("");
   const [grade, setGrade] = useState(userGrade ? String(userGrade) : "");
   const [search, setSearch] = useState("");
@@ -42,7 +43,11 @@ export function CourseBrowser({ courses, enrolledIds, userGrade }: CourseBrowser
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#1e5631]">Browse Courses</h1>
-        <p className="text-gray-500 text-sm mt-1">STEM afterschool courses for Grades 5–12</p>
+        <p className="text-gray-500 text-sm mt-1">
+          {!isPrivileged && userGrade
+            ? `Showing Grade ${userGrade} STEM courses`
+            : "STEM afterschool courses for Grades 5–12"}
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
@@ -63,13 +68,15 @@ export function CourseBrowser({ courses, enrolledIds, userGrade }: CourseBrowser
           placeholder="All Subjects"
           className="w-44"
         />
-        <Select
-          value={grade}
-          onChange={(e) => setGrade(e.target.value)}
-          options={GRADES.map((g) => ({ value: g, label: `Grade ${g}` }))}
-          placeholder="All Grades"
-          className="w-36"
-        />
+        {isPrivileged && (
+          <Select
+            value={grade}
+            onChange={(e) => setGrade(e.target.value)}
+            options={GRADES.map((g) => ({ value: g, label: `Grade ${g}` }))}
+            placeholder="All Grades"
+            className="w-36"
+          />
+        )}
         {(subject || grade || search) && (
           <Button
             variant="ghost"

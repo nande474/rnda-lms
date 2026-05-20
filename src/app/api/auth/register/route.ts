@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
-  const { name, email, password } = await req.json();
+  const { name, email, password, grade } = await req.json();
 
   if (!name || !email || !password) {
     return NextResponse.json({ error: "All fields are required" }, { status: 400 });
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
   const hashed = await bcrypt.hash(password, 12);
   await db.user.create({
-    data: { name, email, password: hashed, role: "STUDENT" },
+    data: { name, email, password: hashed, role: "STUDENT", grade: grade ? Number(grade) : null },
   });
 
   return NextResponse.json({ ok: true });

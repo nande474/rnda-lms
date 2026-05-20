@@ -12,6 +12,16 @@ export async function POST(req: Request) {
   const course = await db.course.findUnique({ where: { id: courseId, published: true } });
   if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 });
 
+  const role = session.user.role;
+  const isPrivileged = ["ADMIN", "SUPERADMIN", "TEACHER", "SITEADMIN"].includes(role);
+
+  if (!isPrivileged && session.user.grade && course.grade !== session.user.grade) {
+    return NextResponse.json(
+      { error: `This course is for Grade ${course.grade}. You are in Grade ${session.user.grade}.` },
+      { status: 403 }
+    );
+  }
+
   const existing = await db.enrollment.findUnique({
     where: { userId_courseId: { userId: session.user.id, courseId } },
   });

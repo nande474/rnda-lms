@@ -31,6 +31,19 @@ export const SUBJECT_ICONS: Record<string, string> = {
 
 export const GRADES = [5, 6, 7, 8, 9, 10, 11, 12];
 
+export const SITES: Record<number, { name: string; shortName: string }> = {
+  1: { name: "Masibambane College",     shortName: "Masibambane" },
+  2: { name: "Monument Park High",      shortName: "Monument Park" },
+  3: { name: "Sophumelela High School", shortName: "Sophumelela" },
+  4: { name: "School 4",               shortName: "School 4" },
+  5: { name: "School 5",               shortName: "School 5" },
+};
+
+export function getSiteName(siteId: number | null | undefined) {
+  if (!siteId) return null;
+  return SITES[siteId]?.shortName ?? `Site ${siteId}`;
+}
+
 export function getGradeLabel(grade: number) {
   return `Grade ${grade}`;
 }

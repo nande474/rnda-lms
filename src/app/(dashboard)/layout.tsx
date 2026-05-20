@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 
 export default async function DashboardLayout({
   children,
@@ -11,13 +11,19 @@ export default async function DashboardLayout({
   const session = await auth();
   if (!session?.user) redirect("/login");
 
+  const now = new Date();
+  const announcements = await db.announcement.findMany({
+    where: {
+      active: true,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
+    select: { id: true, title: true, message: true },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(135deg,#f5faf4 0%,#f0f7eb 100%)" }}>
-      <Sidebar role={session.user.role} />
-      <Topbar user={session.user} />
-      <main className="ml-64 pt-16 min-h-screen">
-        <div className="p-6">{children}</div>
-      </main>
-    </div>
+    <DashboardShell role={session.user.role} user={session.user} announcements={announcements}>
+      {children}
+    </DashboardShell>
   );
 }

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage() {
@@ -38,7 +39,9 @@ export default async function LoginPage() {
       </div>
 
       <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
-        <LoginForm />
+        <Suspense>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );
