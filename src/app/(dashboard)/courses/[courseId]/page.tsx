@@ -16,6 +16,7 @@ export default async function CourseDetailPage({
     where: { id: courseId },
     include: {
       teacher: { select: { name: true, image: true } },
+      sections: { orderBy: { order: "asc" } },
       lessons: { orderBy: { order: "asc" } },
       quizzes: { include: { questions: true } },
       assignments: {
