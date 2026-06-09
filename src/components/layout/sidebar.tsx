@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, BookOpen, Users, BarChart2,
   Award, GraduationCap, Settings, ChevronRight, PlusCircle, ClipboardList, BookMarked, X,
-  Megaphone, Shield, TrendingUp,
+  Megaphone, Shield, TrendingUp, Library,
 } from "lucide-react";
 
 interface NavItem {
@@ -39,6 +39,7 @@ const adminNav: NavItem[] = [
   { href: "/admin/users",            label: "Users",         icon: <Users size={17} /> },
   { href: "/admin/courses",          label: "All Courses",   icon: <BookOpen size={17} /> },
   { href: "/admin/enrollments",      label: "Enrollments",   icon: <GraduationCap size={17} /> },
+  { href: "/admin/curriculum",       label: "Curriculum",    icon: <Library size={17} /> },
   { href: "/admin/analytics",        label: "Analytics",     icon: <TrendingUp size={17} /> },
   { href: "/admin/announcements",    label: "Announcements", icon: <Megaphone size={17} /> },
   { href: "/admin/settings",         label: "Settings",      icon: <Settings size={17} /> },
