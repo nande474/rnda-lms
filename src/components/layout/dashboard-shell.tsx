@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { Megaphone, X } from "lucide-react";
@@ -100,6 +101,12 @@ export function DashboardShell({ role, user, announcements = [], children }: Das
           </div>
         )}
         <div className="p-4 sm:p-6">{children}</div>
+        <footer className="mt-auto px-4 sm:px-6 py-4 border-t border-gray-200/60 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
+          <span>© {new Date().getFullYear()} Regenerating Neighbourhood Development Agency</span>
+          <Link href="/privacy-policy" className="hover:text-gray-600 transition-colors">
+            Privacy Policy
+          </Link>
+        </footer>
       </main>
     </div>
   );

@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage() {
@@ -38,10 +39,19 @@ export default async function LoginPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
-        <Suspense>
-          <LoginForm />
-        </Suspense>
+      <div className="flex-1 flex flex-col bg-gray-50">
+        <div className="flex-1 flex items-center justify-center p-8">
+          <Suspense>
+            <LoginForm />
+          </Suspense>
+        </div>
+        <footer className="px-8 py-4 text-center text-xs text-gray-400 border-t border-gray-200">
+          <Link href="/privacy-policy" className="hover:text-gray-600 transition-colors">
+            Privacy Policy
+          </Link>
+          <span className="mx-2">·</span>
+          <span>© {new Date().getFullYear()} RNDA</span>
+        </footer>
       </div>
     </div>
   );
