@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
+import { Trash2 } from "lucide-react";
 import { formatDate, getSiteName, SITES } from "@/lib/utils";
 
 interface User {
@@ -32,8 +33,9 @@ const ROLE_LEVEL: Record<string, number> = {
 };
 
 export function UsersTable({ users: initial, currentUserRole }: { users: User[]; currentUserRole: string }) {
-  const [users, setUsers] = useState(initial);
+  const [users, setUsers]       = useState(initial);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [rowError, setRowError] = useState<Record<string, string>>({});
   const currentLevel = ROLE_LEVEL[currentUserRole] ?? 0;
 
@@ -56,6 +58,20 @@ export function UsersTable({ users: initial, currentUserRole }: { users: User[];
     setUpdating(null);
   };
 
+  const deleteUser = async (user: User) => {
+    if (!confirm(`Delete ${user.name ?? user.email}? This is permanent and cannot be undone.`)) return;
+    setDeleting(user.id);
+    setRowError((e) => ({ ...e, [user.id]: "" }));
+    const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+    if (res.ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setRowError((e) => ({ ...e, [user.id]: data.error ?? "Failed to delete" }));
+    }
+    setDeleting(null);
+  };
+
   const ActionControls = ({ user }: { user: User }) =>
     (ROLE_LEVEL[user.role] ?? 0) >= currentLevel ? (
       <span className="text-xs text-gray-400 italic">Protected</span>
@@ -75,7 +91,7 @@ export function UsersTable({ users: initial, currentUserRole }: { users: User[];
               : []),
           ]}
           className="w-28 text-xs py-1"
-          disabled={updating === user.id}
+          disabled={updating === user.id || deleting === user.id}
         />
         <Select
           value={user.grade?.toString() ?? ""}
@@ -85,7 +101,7 @@ export function UsersTable({ users: initial, currentUserRole }: { users: User[];
             ...[5, 6, 7, 8, 9, 10, 11, 12].map((g) => ({ value: String(g), label: `Grade ${g}` })),
           ]}
           className="w-24 text-xs py-1"
-          disabled={updating === user.id}
+          disabled={updating === user.id || deleting === user.id}
         />
         <Select
           value={user.siteId?.toString() ?? ""}
@@ -95,8 +111,18 @@ export function UsersTable({ users: initial, currentUserRole }: { users: User[];
             ...Object.entries(SITES).map(([id, s]) => ({ value: id, label: s.shortName })),
           ]}
           className="w-24 text-xs py-1"
-          disabled={updating === user.id}
+          disabled={updating === user.id || deleting === user.id}
         />
+        <button
+          onClick={() => deleteUser(user)}
+          disabled={deleting === user.id}
+          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+          title="Delete user"
+        >
+          {deleting === user.id
+            ? <span className="text-xs text-gray-400">…</span>
+            : <Trash2 size={14} />}
+        </button>
       </div>
     );
 
