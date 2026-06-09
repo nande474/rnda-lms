@@ -2,47 +2,12 @@
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
-import { Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { credentialsSignIn } from "@/lib/actions";
 import { useSearchParams } from "next/navigation";
-
-const TEST_ACCOUNTS = [
-  { label: "Admin", email: "admin@rnda", role: "ADMIN" },
-  { label: "Teacher 1", email: "teacher1@rnda", role: "TEACHER" },
-  { label: "Teacher 2", email: "teacher2@rnda", role: "TEACHER" },
-  { label: "Teacher 3", email: "teacher3@rnda", role: "TEACHER" },
-  { label: "Teacher 4", email: "teacher4@rnda", role: "TEACHER" },
-  { label: "Teacher 5", email: "teacher5@rnda", role: "TEACHER" },
-  { label: "Student 1", email: "student1@rnda", role: "STUDENT" },
-  { label: "Student 2", email: "student2@rnda", role: "STUDENT" },
-  { label: "Student 3", email: "student3@rnda", role: "STUDENT" },
-  { label: "Student 4", email: "student4@rnda", role: "STUDENT" },
-  { label: "Student 5", email: "student5@rnda", role: "STUDENT" },
-  { label: "Student 6", email: "student6@rnda", role: "STUDENT" },
-  { label: "Student 7", email: "student7@rnda", role: "STUDENT" },
-  { label: "Student 8", email: "student8@rnda", role: "STUDENT" },
-  { label: "Student 9", email: "student9@rnda", role: "STUDENT" },
-  { label: "Student 10", email: "student10@rnda", role: "STUDENT" },
-  { label: "Student 11", email: "student11@rnda", role: "STUDENT" },
-  { label: "Student 12", email: "student12@rnda", role: "STUDENT" },
-  { label: "Student 13", email: "student13@rnda", role: "STUDENT" },
-  { label: "Student 14", email: "student14@rnda", role: "STUDENT" },
-  { label: "Student 15", email: "student15@rnda", role: "STUDENT" },
-  { label: "Student 16", email: "student16@rnda", role: "STUDENT" },
-  { label: "Student 17", email: "student17@rnda", role: "STUDENT" },
-  { label: "Student 18", email: "student18@rnda", role: "STUDENT" },
-  { label: "Student 19", email: "student19@rnda", role: "STUDENT" },
-  { label: "Student 20", email: "student20@rnda", role: "STUDENT" },
-];
-
-const ROLE_COLORS: Record<string, string> = {
-  ADMIN: "bg-purple-100 text-purple-700 hover:bg-purple-200",
-  TEACHER: "bg-blue-100 text-blue-700 hover:bg-blue-200",
-  STUDENT: "bg-green-100 text-green-700 hover:bg-green-200",
-};
 
 function PasswordInput({
   placeholder,
@@ -82,14 +47,12 @@ function PasswordInput({
 }
 
 export function LoginForm() {
-  const params = useSearchParams();
+  const params    = useSearchParams();
   const authError = params.get("error");
 
   const [loading, setLoading] = useState(false);
-  const [signingInAs, setSigningInAs] = useState("");
-  const [error, setError] = useState("");
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [showTestAccounts, setShowTestAccounts] = useState(false);
+  const [error, setError]     = useState("");
+  const [form, setForm]       = useState({ email: "", password: "" });
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -97,16 +60,6 @@ export function LoginForm() {
   const handleGoogle = async () => {
     setLoading(true);
     await signIn("google", { callbackUrl: "/dashboard" });
-  };
-
-  const handleQuickSignIn = async (email: string) => {
-    setSigningInAs(email);
-    setError("");
-    const result = await credentialsSignIn(email, "Rnda@2024!");
-    if (result?.error) {
-      setError(result.error);
-      setSigningInAs("");
-    }
   };
 
   const handleCredentials = async (e: React.FormEvent) => {
@@ -139,7 +92,7 @@ export function LoginForm() {
 
         <Button
           onClick={handleGoogle}
-          disabled={loading || !!signingInAs}
+          disabled={loading}
           variant="outline"
           className="w-full border-gray-200 text-gray-700 hover:bg-gray-50"
           size="lg"
@@ -188,7 +141,7 @@ export function LoginForm() {
             type="submit"
             className="w-full bg-[#6db33f] hover:bg-[#5a9a34] text-white"
             size="lg"
-            disabled={loading || !!signingInAs}
+            disabled={loading}
           >
             {loading ? "Please wait…" : "Sign In"}
           </Button>
@@ -197,35 +150,6 @@ export function LoginForm() {
         <p className="text-center text-xs text-gray-400">
           No account? Contact your administrator.
         </p>
-      </div>
-
-      {/* Test accounts panel */}
-      <div className="mt-4 bg-white rounded-2xl border border-dashed border-gray-200 overflow-hidden">
-        <button
-          onClick={() => setShowTestAccounts((v) => !v)}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-500 hover:bg-gray-50"
-        >
-          <span className="font-medium">🧪 Test accounts</span>
-          {showTestAccounts ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-
-        {showTestAccounts && (
-          <div className="px-4 pb-4 space-y-2">
-            <p className="text-xs text-gray-400 mb-3">Click any account to sign in instantly</p>
-            <div className="flex flex-wrap gap-2">
-              {TEST_ACCOUNTS.map((account) => (
-                <button
-                  key={account.email}
-                  onClick={() => handleQuickSignIn(account.email)}
-                  disabled={!!signingInAs}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${ROLE_COLORS[account.role]} ${signingInAs === account.email ? "opacity-50" : ""}`}
-                >
-                  {signingInAs === account.email ? "Signing in…" : account.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

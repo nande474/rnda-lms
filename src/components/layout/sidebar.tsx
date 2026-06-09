@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, BookOpen, Users, BarChart2,
   Award, GraduationCap, Settings, ChevronRight, PlusCircle, ClipboardList, BookMarked, X,
-  Megaphone, Shield, TrendingUp, FlaskConical,
+  Megaphone, Shield, TrendingUp,
 } from "lucide-react";
 
 interface NavItem {
@@ -46,9 +46,8 @@ const adminNav: NavItem[] = [
 
 const superadminNav: NavItem[] = [
   ...adminNav.filter((n) => n.href !== "/admin/settings"),
-  { href: "/admin/audit",         label: "Audit Logs",    icon: <Shield size={17} /> },
-  { href: "/admin/test-accounts", label: "Test Accounts", icon: <FlaskConical size={17} /> },
-  { href: "/admin/settings",      label: "Settings",      icon: <Settings size={17} /> },
+  { href: "/admin/audit",    label: "Audit Logs", icon: <Shield size={17} /> },
+  { href: "/admin/settings", label: "Settings",   icon: <Settings size={17} /> },
 ];
 
 const siteadminNav: NavItem[] = [
