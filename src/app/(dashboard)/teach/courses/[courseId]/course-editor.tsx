@@ -6,10 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select } from "@/components/ui/select";
 import { SUBJECTS, SUBJECT_ICONS } from "@/lib/utils";
-import { Plus, BookOpen, Users, Eye, EyeOff, GripVertical, Trash2, ClipboardList, CheckCircle, Clock } from "lucide-react";
+import {
+  Plus, BookOpen, Users, Eye, EyeOff, GripVertical, Trash2, ClipboardList,
+  CheckCircle, Clock, FolderPlus, Folder, FolderOpen, ChevronDown, ChevronRight,
+  Pencil, X,
+} from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
+interface Section { id: string; name: string; order: number }
 interface Lesson {
   id: string;
   title: string;
@@ -17,9 +23,9 @@ interface Lesson {
   videoUrl: string | null;
   resourceUrl: string | null;
   order: number;
+  sectionId: string | null;
   duration: number | null;
 }
-
 interface Assignment {
   id: string;
   title: string;
@@ -46,6 +52,7 @@ interface CourseEditorProps {
     subject: string;
     grade: number;
     published: boolean;
+    sections: Section[];
     lessons: Lesson[];
     assignments: Assignment[];
     enrollments: Array<{ user: { name: string | null; email: string; image: string | null } }>;
@@ -53,20 +60,33 @@ interface CourseEditorProps {
 }
 
 export function CourseEditor({ course: initial }: CourseEditorProps) {
-  const [course, setCourse] = useState(initial);
-  const [lessons, setLessons] = useState(initial.lessons);
+  const [course, setCourse]           = useState(initial);
+  const [lessons, setLessons]         = useState(initial.lessons);
+  const [sections, setSections]       = useState(initial.sections);
   const [assignments, setAssignments] = useState<Assignment[]>(initial.assignments);
+  const [saving, setSaving]           = useState(false);
+  const [tab, setTab]                 = useState<"lessons" | "assignments" | "students">("lessons");
+
+  // Section state
+  const [showNewSection, setShowNewSection]   = useState(false);
+  const [newSectionName, setNewSectionName]   = useState("");
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [editSectionName, setEditSectionName]   = useState("");
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [creatingSection, setCreatingSection] = useState(false);
+
+  // Lesson state
   const [showNewLesson, setShowNewLesson] = useState(false);
+  const [newLesson, setNewLesson]         = useState({ title: "", content: "", videoUrl: "", resourceUrl: "", duration: "", sectionId: "" });
+
+  // Assignment state
   const [showNewAssignment, setShowNewAssignment] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"lessons" | "assignments" | "students">("lessons");
-  const [gradingId, setGradingId] = useState<string | null>(null);
-  const [gradeForm, setGradeForm] = useState<Record<string, { grade: string; feedback: string }>>({});
-  const [gradeError, setGradeError] = useState<Record<string, string>>({});
+  const [newAssignment, setNewAssignment]         = useState({ title: "", description: "", dueDate: "", maxScore: "100", weight: "1" });
+  const [gradingId, setGradingId]                 = useState<string | null>(null);
+  const [gradeForm, setGradeForm]                 = useState<Record<string, { grade: string; feedback: string }>>({});
+  const [gradeError, setGradeError]               = useState<Record<string, string>>({});
 
-  const [newLesson, setNewLesson] = useState({ title: "", content: "", videoUrl: "", resourceUrl: "", duration: "" });
-  const [newAssignment, setNewAssignment] = useState({ title: "", description: "", dueDate: "", maxScore: "100", weight: "1" });
-
+  // ── Course publish ────────────────────────────────────────────────────────────
   const togglePublish = async () => {
     setSaving(true);
     const res = await fetch(`/api/courses/${course.id}`, {
@@ -78,6 +98,69 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
     setSaving(false);
   };
 
+  // ── Sections ──────────────────────────────────────────────────────────────────
+  const createSection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSectionName.trim()) return;
+    setCreatingSection(true);
+    const res = await fetch("/api/teach/sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "CREATE", courseId: course.id, name: newSectionName.trim() }),
+    });
+    if (res.ok) {
+      const { section } = await res.json();
+      setSections((prev) => [...prev, section]);
+      setNewSectionName("");
+      setShowNewSection(false);
+    }
+    setCreatingSection(false);
+  };
+
+  const saveEditSection = async (sectionId: string) => {
+    if (!editSectionName.trim()) return;
+    const res = await fetch("/api/teach/sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "UPDATE", sectionId, name: editSectionName.trim() }),
+    });
+    if (res.ok) {
+      setSections((prev) => prev.map((s) => (s.id === sectionId ? { ...s, name: editSectionName.trim() } : s)));
+      setEditingSectionId(null);
+    }
+  };
+
+  const deleteSection = async (sectionId: string) => {
+    const res = await fetch("/api/teach/sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "DELETE", sectionId }),
+    });
+    if (res.ok) {
+      setSections((prev) => prev.filter((s) => s.id !== sectionId));
+      setLessons((prev) => prev.map((l) => (l.sectionId === sectionId ? { ...l, sectionId: null } : l)));
+    }
+  };
+
+  const moveLesson = async (lessonId: string, sectionId: string | null) => {
+    const res = await fetch("/api/teach/sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "MOVE_LESSON", lessonId, sectionId }),
+    });
+    if (res.ok) {
+      setLessons((prev) => prev.map((l) => (l.id === lessonId ? { ...l, sectionId } : l)));
+    }
+  };
+
+  const toggleCollapse = (id: string) =>
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  // ── Lessons ──────────────────────────────────────────────────────────────────
   const addLesson = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch(`/api/courses/${course.id}/lessons`, {
@@ -88,7 +171,7 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
     if (res.ok) {
       const { lesson } = await res.json();
       setLessons((prev) => [...prev, lesson]);
-      setNewLesson({ title: "", content: "", videoUrl: "", resourceUrl: "", duration: "" });
+      setNewLesson({ title: "", content: "", videoUrl: "", resourceUrl: "", duration: "", sectionId: "" });
       setShowNewLesson(false);
     }
   };
@@ -98,6 +181,7 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
     setLessons((prev) => prev.filter((l) => l.id !== lessonId));
   };
 
+  // ── Assignments ───────────────────────────────────────────────────────────────
   const addAssignment = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch("/api/assignments", {
@@ -138,8 +222,20 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
     }
   };
 
+  // ── Section groups for display ────────────────────────────────────────────────
+  const sectionGroups = [
+    ...sections.map((s) => ({ ...s, isUncategorized: false, lessons: lessons.filter((l) => l.sectionId === s.id) })),
+    { id: "__none__", name: "Uncategorized", order: 9999, isUncategorized: true, lessons: lessons.filter((l) => !l.sectionId) },
+  ].filter((g) => g.lessons.length > 0 || !g.isUncategorized);
+
+  const sectionOptions = [
+    { value: "", label: "No section" },
+    ...sections.map((s) => ({ value: s.id, label: s.name })),
+  ];
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -158,6 +254,7 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
         </Button>
       </div>
 
+      {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200">
         {(["lessons", "assignments", "students"] as const).map((t) => (
           <button
@@ -167,38 +264,173 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
               tab === t ? "border-[#6db33f] text-[#6db33f]" : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
           >
-            {t === "lessons" && <span className="flex items-center gap-1.5"><BookOpen size={14} /> Lessons ({lessons.length})</span>}
+            {t === "lessons"     && <span className="flex items-center gap-1.5"><BookOpen size={14} /> Lessons ({lessons.length})</span>}
             {t === "assignments" && <span className="flex items-center gap-1.5"><ClipboardList size={14} /> Assignments ({assignments.length})</span>}
-            {t === "students" && <span className="flex items-center gap-1.5"><Users size={14} /> Students ({course.enrollments.length})</span>}
+            {t === "students"    && <span className="flex items-center gap-1.5"><Users size={14} /> Students ({course.enrollments.length})</span>}
           </button>
         ))}
       </div>
 
+      {/* ── Lessons tab ─────────────────────────────────────────────────────────── */}
       {tab === "lessons" && (
-        <div className="space-y-3">
-          {lessons.map((lesson, i) => (
-            <Card key={lesson.id}>
-              <CardContent className="py-3 flex items-center gap-3">
-                <GripVertical size={16} className="text-gray-300" />
-                <div className="w-7 h-7 rounded-full bg-[#f0f7eb] flex items-center justify-center text-xs font-medium text-[#1e5631]">
-                  {i + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800">{lesson.title}</p>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    <p className="text-xs text-gray-400 truncate">{lesson.content.slice(0, 60)}…</p>
-                    {lesson.videoUrl && <span className="text-xs text-blue-500">▶ Video</span>}
-                    {lesson.resourceUrl && <span className="text-xs text-orange-500">📄 Resource</span>}
-                  </div>
-                </div>
-                {lesson.duration && <span className="text-xs text-gray-400">{lesson.duration} min</span>}
-                <button onClick={() => deleteLesson(lesson.id)} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
-                  <Trash2 size={14} />
-                </button>
+        <div className="space-y-4">
+          {/* Toolbar */}
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-400">
+              {sections.length} section{sections.length !== 1 ? "s" : ""} · {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
+            </p>
+            <button
+              onClick={() => { setShowNewSection(true); setNewSectionName(""); }}
+              className="flex items-center gap-1.5 text-sm text-[#6db33f] hover:text-[#5a9a34] font-medium transition-colors"
+            >
+              <FolderPlus size={15} /> Add Section
+            </button>
+          </div>
+
+          {/* New section form */}
+          {showNewSection && (
+            <Card>
+              <CardContent className="py-3">
+                <form onSubmit={createSection} className="flex gap-2 items-center">
+                  <Input
+                    placeholder='e.g. "Term 1: Algebra"'
+                    value={newSectionName}
+                    onChange={(e) => setNewSectionName(e.target.value)}
+                    className="flex-1"
+                    autoFocus
+                    required
+                  />
+                  <Button type="submit" loading={creatingSection} size="sm">Create</Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setShowNewSection(false)}>
+                    <X size={14} />
+                  </Button>
+                </form>
               </CardContent>
             </Card>
-          ))}
+          )}
 
+          {/* Section groups */}
+          {sectionGroups.map((group) => {
+            const isCollapsed = collapsedSections.has(group.id);
+            const isEditing   = editingSectionId === group.id;
+            return (
+              <div key={group.id} className="rounded-xl border border-gray-200 overflow-hidden">
+                {/* Section header */}
+                <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2.5">
+                  <button
+                    type="button"
+                    onClick={() => toggleCollapse(group.id)}
+                    className="text-emerald-600 shrink-0"
+                  >
+                    {isCollapsed ? <ChevronRight size={15} /> : <ChevronDown size={15} />}
+                  </button>
+                  {isCollapsed
+                    ? <Folder size={14} className="text-emerald-600 shrink-0" />
+                    : <FolderOpen size={14} className="text-emerald-600 shrink-0" />
+                  }
+
+                  {isEditing ? (
+                    <form
+                      onSubmit={(e) => { e.preventDefault(); saveEditSection(group.id); }}
+                      className="flex gap-1.5 flex-1 items-center"
+                    >
+                      <Input
+                        value={editSectionName}
+                        onChange={(e) => setEditSectionName(e.target.value)}
+                        className="h-7 text-sm flex-1"
+                        autoFocus
+                      />
+                      <Button type="submit" size="sm" className="h-7 px-2 text-xs">Save</Button>
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-1" onClick={() => setEditingSectionId(null)}>
+                        <X size={12} />
+                      </Button>
+                    </form>
+                  ) : (
+                    <>
+                      <span className="flex-1 font-semibold text-emerald-900 text-sm">{group.name}</span>
+                      <span className="text-xs text-emerald-600 mr-2">{group.lessons.length} lesson{group.lessons.length !== 1 ? "s" : ""}</span>
+                      {!group.isUncategorized && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => { setEditingSectionId(group.id); setEditSectionName(group.name); }}
+                            className="p-1 rounded hover:bg-emerald-100 text-emerald-500 transition-colors"
+                            title="Rename section"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteSection(group.id)}
+                            className="p-1 rounded hover:bg-red-50 text-emerald-400 hover:text-red-500 transition-colors"
+                            title="Delete section (lessons become uncategorized)"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Lessons */}
+                {!isCollapsed && (
+                  <div className="bg-white divide-y divide-gray-50">
+                    {group.lessons.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-gray-400 italic">
+                        No lessons yet — add one below and assign it to this section.
+                      </p>
+                    ) : (
+                      group.lessons.map((lesson, i) => (
+                        <div key={lesson.id} className="flex items-center gap-3 px-4 py-3">
+                          <GripVertical size={16} className="text-gray-300 shrink-0" />
+                          <div className="w-7 h-7 rounded-full bg-[#f0f7eb] flex items-center justify-center text-xs font-medium text-[#1e5631] shrink-0">
+                            {i + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800">{lesson.title}</p>
+                            <div className="flex items-center gap-3 mt-0.5">
+                              <p className="text-xs text-gray-400 truncate">{lesson.content.slice(0, 60)}…</p>
+                              {lesson.videoUrl    && <span className="text-xs text-blue-500">▶ Video</span>}
+                              {lesson.resourceUrl && <span className="text-xs text-orange-500">📄 Resource</span>}
+                            </div>
+                          </div>
+                          {lesson.duration && <span className="text-xs text-gray-400 shrink-0">{lesson.duration} min</span>}
+                          {/* Move to section */}
+                          {sections.length > 0 && (
+                            <select
+                              value={lesson.sectionId ?? ""}
+                              onChange={(e) => moveLesson(lesson.id, e.target.value || null)}
+                              className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-500 bg-white focus:outline-none focus:border-[#6db33f]"
+                              title="Move to section"
+                            >
+                              <option value="">No section</option>
+                              {sections.map((s) => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                            </select>
+                          )}
+                          <button
+                            onClick={() => deleteLesson(lesson.id)}
+                            className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Lessons with no sections and no uncategorized group shown yet */}
+          {sectionGroups.length === 0 && lessons.length === 0 && (
+            <p className="text-center text-sm text-gray-400 py-6">No lessons yet. Add one below.</p>
+          )}
+
+          {/* New lesson form */}
           {showNewLesson ? (
             <Card>
               <CardHeader><h3 className="font-semibold text-gray-800 text-sm">New Lesson</h3></CardHeader>
@@ -209,6 +441,14 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
                   <Input label="Video URL (YouTube/Vimeo embed, optional)" placeholder="https://www.youtube.com/embed/..." value={newLesson.videoUrl} onChange={(e) => setNewLesson({ ...newLesson, videoUrl: e.target.value })} />
                   <Input label="Resource URL (PDF or document link, optional)" placeholder="https://..." value={newLesson.resourceUrl} onChange={(e) => setNewLesson({ ...newLesson, resourceUrl: e.target.value })} />
                   <Input label="Duration (minutes, optional)" type="number" value={newLesson.duration} onChange={(e) => setNewLesson({ ...newLesson, duration: e.target.value })} />
+                  {sections.length > 0 && (
+                    <Select
+                      value={newLesson.sectionId}
+                      onChange={(e) => setNewLesson({ ...newLesson, sectionId: e.target.value })}
+                      options={sectionOptions}
+                      placeholder="Add to section (optional)"
+                    />
+                  )}
                   <div className="flex gap-2">
                     <Button type="submit">Add Lesson</Button>
                     <Button type="button" variant="ghost" onClick={() => setShowNewLesson(false)}>Cancel</Button>
@@ -217,19 +457,23 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
               </CardContent>
             </Card>
           ) : (
-            <button onClick={() => setShowNewLesson(true)} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-[#6db33f] hover:text-[#6db33f] transition-colors flex items-center justify-center gap-2">
+            <button
+              onClick={() => setShowNewLesson(true)}
+              className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-[#6db33f] hover:text-[#6db33f] transition-colors flex items-center justify-center gap-2"
+            >
               <Plus size={16} /> Add Lesson
             </button>
           )}
         </div>
       )}
 
+      {/* ── Assignments tab ──────────────────────────────────────────────────────── */}
       {tab === "assignments" && (
         <div className="space-y-4">
           {assignments.map((a) => {
-            const submitted = a.submissions.length;
-            const graded = a.submissions.filter((s) => s.grade !== null).length;
-            const isOverdue = new Date(a.dueDate) < new Date();
+            const submitted  = a.submissions.length;
+            const graded     = a.submissions.filter((s) => s.grade !== null).length;
+            const isOverdue  = new Date(a.dueDate) < new Date();
             return (
               <Card key={a.id}>
                 <CardContent className="py-4">
@@ -264,15 +508,15 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                           {a.submissions.map((s) => {
-                            const key = `${a.id}-${s.userId}`;
+                            const key       = `${a.id}-${s.userId}`;
                             const isGrading = gradingId === key;
                             return (
                               <tr key={s.userId}>
                                 <td className="px-4 py-2">
                                   <p className="font-medium text-gray-800">{s.user.name}</p>
                                   <p className="text-xs text-gray-400">{s.user.email}</p>
-                                  {s.content && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{s.content}</p>}
-                                  {s.fileUrl && <a href={s.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">View file</a>}
+                                  {s.content  && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{s.content}</p>}
+                                  {s.fileUrl  && <a href={s.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">View file</a>}
                                 </td>
                                 <td className="px-4 py-2 text-xs text-gray-500">{formatDate(s.submittedAt)}</td>
                                 <td className="px-4 py-2">
@@ -309,7 +553,10 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
                                     </div>
                                   ) : (
                                     <button
-                                      onClick={() => { setGradingId(key); setGradeForm((f) => ({ ...f, [key]: { grade: String(s.grade ?? ""), feedback: s.feedback ?? "" } })); }}
+                                      onClick={() => {
+                                        setGradingId(key);
+                                        setGradeForm((f) => ({ ...f, [key]: { grade: String(s.grade ?? ""), feedback: s.feedback ?? "" } }));
+                                      }}
                                       className="text-xs text-[#6db33f] hover:underline flex items-center gap-1"
                                     >
                                       <CheckCircle size={12} /> {s.grade !== null ? "Edit grade" : "Grade"}
@@ -350,13 +597,17 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
               </CardContent>
             </Card>
           ) : (
-            <button onClick={() => setShowNewAssignment(true)} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-[#6db33f] hover:text-[#6db33f] transition-colors flex items-center justify-center gap-2">
+            <button
+              onClick={() => setShowNewAssignment(true)}
+              className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-[#6db33f] hover:text-[#6db33f] transition-colors flex items-center justify-center gap-2"
+            >
               <Plus size={16} /> New Assignment
             </button>
           )}
         </div>
       )}
 
+      {/* ── Students tab ─────────────────────────────────────────────────────────── */}
       {tab === "students" && (
         <Card>
           <CardContent className="py-2">

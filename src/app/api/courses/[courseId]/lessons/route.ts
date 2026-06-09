@@ -16,7 +16,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ courseI
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { title, content, videoUrl, duration } = await req.json();
+  const { title, content, videoUrl, resourceUrl, duration, sectionId } = await req.json();
 
   const maxOrder = await db.lesson.aggregate({
     where: { courseId },
@@ -28,9 +28,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ courseI
       title,
       content,
       videoUrl: videoUrl || null,
+      resourceUrl: resourceUrl || null,
       duration: duration ? Number(duration) : null,
       order: (maxOrder._max.order ?? 0) + 1,
       courseId,
+      sectionId: sectionId || null,
     },
   });
 

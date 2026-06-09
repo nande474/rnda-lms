@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
-import { Plus, Users, Calendar, CheckCircle2, XCircle, Save } from "lucide-react";
+import { Plus, Users, Calendar, CheckCircle2, XCircle, Save, Lock, LockOpen } from "lucide-react";
 
 interface Student { id: string; name: string | null; email: string }
 interface Course  { id: string; title: string; grade: number }
@@ -17,6 +17,7 @@ interface AttendanceSession {
   title: string;
   date: Date;
   courseId: string | null;
+  closed: boolean;
   course: { title: string } | null;
   records: AttendanceRecord[];
 }
@@ -40,6 +41,7 @@ export function AttendanceManager({
   const [showNew,       setShowNew]     = useState(false);
   const [activeSession, setActive]      = useState<AttendanceSession | null>(null);
   const [saving,        setSaving]      = useState(false);
+  const [locking,       setLocking]     = useState(false);
   const [creating,      setCreating]    = useState(false);
   const [saved,         setSaved]       = useState(false);
   const [form, setForm]                 = useState({ title: "", date: "", courseId: "" });
@@ -83,6 +85,23 @@ export function AttendanceManager({
 
   const togglePresent = (userId: string) =>
     setRegister((reg) => ({ ...reg, [userId]: { ...reg[userId], present: !reg[userId]?.present } }));
+
+  const toggleLock = async () => {
+    if (!activeSession) return;
+    setLocking(true);
+    const nextClosed = !activeSession.closed;
+    const res = await fetch(`/api/attendance/${activeSession.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ closed: nextClosed }),
+    });
+    if (res.ok) {
+      const updated = { ...activeSession, closed: nextClosed };
+      setActive(updated);
+      setSessions((prev) => prev.map((s) => (s.id === activeSession.id ? { ...s, closed: nextClosed } : s)));
+    }
+    setLocking(false);
+  };
 
   const saveRegister = async () => {
     if (!activeSession) return;
@@ -199,12 +218,31 @@ export function AttendanceManager({
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-gray-800">{activeSession.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-800">{activeSession.title}</h3>
+                      {activeSession.closed && (
+                        <Badge className="bg-gray-100 text-gray-500 text-[10px] flex items-center gap-1">
+                          <Lock size={9} /> Locked
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-400 mt-0.5">{formatDate(activeSession.date)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-[#1e5631]">{present}/{total}</p>
-                    <p className="text-xs text-gray-400">present</p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-[#1e5631]">{present}/{total}</p>
+                      <p className="text-xs text-gray-400">present</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      loading={locking}
+                      onClick={toggleLock}
+                      className={activeSession.closed ? "border-amber-300 text-amber-700 hover:bg-amber-50" : "border-gray-200 text-gray-500"}
+                      title={activeSession.closed ? "Unlock session" : "Lock session"}
+                    >
+                      {activeSession.closed ? <><LockOpen size={13} /> Unlock</> : <><Lock size={13} /> Lock</>}
+                    </Button>
                   </div>
                 </div>
                 {/* Attendance bar */}
@@ -229,10 +267,11 @@ export function AttendanceManager({
                           {/* Toggle switch */}
                           <button
                             type="button"
-                            onClick={() => togglePresent(r.userId)}
+                            onClick={() => !activeSession.closed && togglePresent(r.userId)}
+                            disabled={activeSession.closed}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0 ${
-                              state.present ? "bg-[#6db33f]" : "bg-gray-200"
-                            }`}
+                              activeSession.closed ? "opacity-50 cursor-not-allowed" : ""
+                            } ${state.present ? "bg-[#6db33f]" : "bg-gray-200"}`}
                             aria-label={state.present ? "Mark absent" : "Mark present"}
                           >
                             <span
@@ -269,7 +308,8 @@ export function AttendanceManager({
                   <Button
                     onClick={saveRegister}
                     loading={saving}
-                    className="bg-[#6db33f] hover:bg-[#5a9a34] text-white gap-2"
+                    disabled={activeSession.closed}
+                    className="bg-[#6db33f] hover:bg-[#5a9a34] text-white gap-2 disabled:opacity-50"
                   >
                     <Save size={14} /> Save Attendance
                   </Button>

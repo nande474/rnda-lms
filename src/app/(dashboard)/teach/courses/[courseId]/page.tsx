@@ -15,6 +15,7 @@ export default async function TeachCoursePage({
   const course = await db.course.findUnique({
     where: { id: courseId },
     include: {
+      sections: { orderBy: { order: "asc" } },
       lessons: { orderBy: { order: "asc" } },
       assignments: {
         orderBy: { dueDate: "asc" },

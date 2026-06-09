@@ -21,22 +21,19 @@ export default async function TeacherGradebookPage() {
     orderBy: { title: "asc" },
   });
 
-  // Fetch students by grade for each unique grade across the teacher's courses.
-  // This covers students created via the "Add Student" flow (grade-tagged but not
-  // formally enrolled) as well as self-enrolled students.
-  const uniqueGrades = [...new Set(courses.map((c) => c.grade))];
-  const studentsByGrade = Object.fromEntries(
+  // Fetch students by enrollment for each course — only show students actually enrolled.
+  const studentsByCourse = Object.fromEntries(
     await Promise.all(
-      uniqueGrades.map(async (g) => [
-        g,
+      courses.map(async (c) => [
+        c.id,
         await db.user.findMany({
-          where:   { role: "STUDENT", grade: g },
+          where:   { enrollments: { some: { courseId: c.id } } },
           select:  { id: true, name: true, email: true },
           orderBy: { name: "asc" },
         }),
       ])
     )
-  ) as Record<number, { id: string; name: string | null; email: string }[]>;
+  ) as Record<string, { id: string; name: string | null; email: string }[]>;
 
-  return <TeacherGradebook courses={courses} studentsByGrade={studentsByGrade} />;
+  return <TeacherGradebook courses={courses} studentsByCourse={studentsByCourse} />;
 }

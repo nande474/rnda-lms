@@ -91,11 +91,23 @@ model Course {
 
   teacher            User               @relation("CourseTeacher", fields: [teacherId], references: [id])
   lessons            Lesson[]
+  sections           Section[]
   enrollments        Enrollment[]
   quizzes            Quiz[]
   certificates       Certificate[]
   assignments        Assignment[]
   attendanceSessions AttendanceSession[]
+}
+
+model Section {
+  id        String   @id @default(cuid())
+  name      String
+  courseId  String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
 }
 
 model Lesson {
@@ -106,11 +118,13 @@ model Lesson {
   resourceUrl String?
   order       Int
   courseId    String
+  sectionId   String?
   duration    Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  section  Section?         @relation(fields: [sectionId], references: [id])
   quiz     Quiz?
   progress LessonProgress[]
 }
@@ -238,6 +252,7 @@ model AttendanceSession {
   siteId    Int?
   courseId  String?
   teacherId String
+  closed    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   teacher  User               @relation("SessionTeacher", fields: [teacherId], references: [id])

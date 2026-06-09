@@ -10,7 +10,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ sessio
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { records } = await req.json();
+  const body = await req.json();
+
+  // Handle session lock/unlock
+  if (typeof body.closed === "boolean") {
+    await db.attendanceSession.update({ where: { id: sessionId }, data: { closed: body.closed } });
+    return NextResponse.json({ ok: true });
+  }
+
+  const { records } = body;
   if (!Array.isArray(records)) {
     return NextResponse.json({ error: "records must be an array" }, { status: 400 });
   }

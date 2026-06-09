@@ -37,10 +37,10 @@ function gradeSymbol(pct: number | null) {
 
 export function TeacherGradebook({
   courses,
-  studentsByGrade,
+  studentsByCourse,
 }: {
   courses: Course[];
-  studentsByGrade: Record<number, Student[]>;
+  studentsByCourse: Record<string, Student[]>;
 }) {
   const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id ?? "");
   const course = courses.find((c) => c.id === selectedCourseId);
@@ -59,7 +59,7 @@ export function TeacherGradebook({
     ...course.quizzes.map((q)     => ({ id: q.id, title: q.title, type: "quiz" as const,       maxScore: 100,        weight: 0.5 })),
   ];
 
-  const students = studentsByGrade[course.grade] ?? [];
+  const students = studentsByCourse[course.id] ?? [];
 
   const getScore = (student: Student, col: typeof columns[0]) => {
     if (col.type === "assignment") {
