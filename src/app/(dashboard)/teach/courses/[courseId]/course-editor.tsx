@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { SUBJECTS, SUBJECT_ICONS } from "@/lib/utils";
+import Link from "next/link";
 import {
   Plus, BookOpen, Users, Eye, EyeOff, GripVertical, Trash2, ClipboardList,
   CheckCircle, Clock, FolderPlus, Folder, FolderOpen, ChevronDown, ChevronRight,
-  Pencil, X,
+  Pencil, X, BarChart2,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -249,9 +250,17 @@ export function CourseEditor({ course: initial }: CourseEditorProps) {
             {SUBJECTS[course.subject as keyof typeof SUBJECTS]} · Grade {course.grade}
           </p>
         </div>
-        <Button variant={course.published ? "outline" : "primary"} loading={saving} onClick={togglePublish}>
-          {course.published ? <><EyeOff size={16} /> Unpublish</> : <><Eye size={16} /> Publish</>}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/teach/courses/${course.id}/progress`}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors"
+          >
+            <BarChart2 size={14} /> Class Progress
+          </Link>
+          <Button variant={course.published ? "outline" : "primary"} loading={saving} onClick={togglePublish}>
+            {course.published ? <><EyeOff size={16} /> Unpublish</> : <><Eye size={16} /> Publish</>}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
